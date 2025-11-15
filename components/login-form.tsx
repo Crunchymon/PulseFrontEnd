@@ -16,41 +16,28 @@ import {
   FieldError,
   FieldGroup,
   FieldLabel,
+  FieldSeparator,
 } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import { useAuth } from "@/context/auth-context"
 
-export function SignupForm({
+export function LoginForm({
   className,
   ...props
 }: React.ComponentProps<"div">) {
-  const [name, setName] = useState("")
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
-  const [confirmPassword, setConfirmPassword] = useState("")
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
-  const { signup } = useAuth()
+  const { login } = useAuth()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError(null)
-
-    // Client-side validation
-    if (password !== confirmPassword) {
-      setError("Passwords do not match")
-      return
-    }
-
-    if (password.length < 8) {
-      setError("Password must be at least 8 characters long")
-      return
-    }
-
     setIsLoading(true)
 
     try {
-      await signup(name, email, password)
+      await login(email, password)
     } catch (err: any) {
       if (err.response?.data?.message) {
         setError(err.response.data.message)
@@ -71,26 +58,14 @@ export function SignupForm({
     <div className={cn("flex flex-col gap-6", className)} {...props}>
       <Card>
         <CardHeader className="text-center">
-          <CardTitle className="text-xl">Create your account</CardTitle>
+          <CardTitle className="text-xl">Welcome back</CardTitle>
           <CardDescription>
-            Enter your information below to create your account
+            Enter your email and password to login
           </CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit}>
             <FieldGroup>
-              <Field>
-                <FieldLabel htmlFor="name">Full Name</FieldLabel>
-                <Input
-                  id="name"
-                  type="text"
-                  placeholder="John Doe"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  required
-                  disabled={isLoading}
-                />
-              </Field>
               <Field>
                 <FieldLabel htmlFor="email">Email</FieldLabel>
                 <Input
@@ -103,35 +78,20 @@ export function SignupForm({
                   disabled={isLoading}
                 />
               </Field>
-              <Field className="grid grid-cols-2 gap-4">
-                <Field>
+              <Field>
+                <div className="flex items-center">
                   <FieldLabel htmlFor="password">Password</FieldLabel>
-                  <Input
-                    id="password"
-                    type="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    required
-                    disabled={isLoading}
-                  />
-                </Field>
-                <Field>
-                  <FieldLabel htmlFor="confirm-password">
-                    Confirm Password
-                  </FieldLabel>
-                  <Input
-                    id="confirm-password"
-                    type="password"
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    required
-                    disabled={isLoading}
-                  />
-                </Field>
+                
+                </div>
+                <Input
+                  id="password"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  disabled={isLoading}
+                />
               </Field>
-              <FieldDescription>
-              Password must be at least 8 characters and contain at least one uppercase letter, one lowercase letter, and one special character.
-              </FieldDescription>
               {error && (
                 <Field>
                   <FieldError>{error}</FieldError>
@@ -139,12 +99,12 @@ export function SignupForm({
               )}
               <Field>
                 <Button type="submit" disabled={isLoading}>
-                  {isLoading ? "Creating account..." : "Create Account"}
+                  {isLoading ? "Logging in..." : "Login"}
                 </Button>
                 <FieldDescription className="text-center">
-                  Already have an account?{" "}
-                  <a href="/auth/login" className="underline underline-offset-4">
-                    Sign in
+                  Don&apos;t have an account?{" "}
+                  <a href="/auth/signup" className="underline underline-offset-4">
+                    Sign up
                   </a>
                 </FieldDescription>
               </Field>
@@ -152,7 +112,7 @@ export function SignupForm({
           </form>
         </CardContent>
       </Card>
-     
+    
     </div>
   )
 }

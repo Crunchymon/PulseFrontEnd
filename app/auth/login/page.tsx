@@ -4,10 +4,10 @@ import { useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { GalleryVerticalEnd } from "lucide-react"
 
-import { SignupForm } from "@/components/signup-form"
+import { LoginForm } from "@/components/login-form"
 import { useAuth } from "@/context/auth-context"
 
-export default function SignupPage() {
+export default function LoginPage() {
   const { isAuthenticated, loading } = useAuth()
   const router = useRouter()
 
@@ -36,7 +36,7 @@ export default function SignupPage() {
           </div>
           <b>Pulse</b>
         </a>
-        <SignupForm />
+        <LoginForm />
       </div>
     </div>
   )
