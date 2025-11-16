@@ -1,0 +1,312 @@
+'use client';
+
+import { useEffect, useState } from 'react';
+import { useParams, useRouter } from 'next/navigation';
+import { Poll, pollsApi, votesApi } from '@/lib/api';
+import { PollOption } from '@/components/poll-option';
+import { useAuth } from '@/context/auth-context';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Trash2, ArrowLeft, AlertCircle , Plus, X, Copy, Check, CheckCircle2 } from 'lucide-react';
+import { ProtectedRoute } from '@/components/protected-route';
+import { Navbar } from '@/components/navbar';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
+
+export default function PollDetailPage() {
+  const params = useParams();
+  const router = useRouter();
+  const { user } = useAuth();
+  const [poll, setPoll] = useState<Poll | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [voting, setVoting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const pollId = parseInt(params.id as string);
+
+  const fetchPoll = async () => {
+    try {
+      const data = await pollsApi.getPoll(pollId);
+      setPoll(data);
+      setError(null);
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Failed to load poll');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchPoll();
+    // Poll for updates every 3 seconds
+    const interval = setInterval(fetchPoll, 3000);
+    return () => clearInterval(interval);
+  }, [pollId]);
+
+  const handleVote = async (optionId: number) => {
+    if (!user || voting) return;
+
+    setVoting(true);
+    setError(null);
+
+    try {
+      const updatedPoll = await votesApi.vote({ pollId, optionId });
+      setPoll(updatedPoll);
+    } catch (err: any) {
+      if (err.response?.data?.message) {
+        setError(err.response.data.message);
+      } else {
+        setError('Failed to vote. Please try again.');
+      }
+    } finally {
+      setVoting(false);
+    }
+  };
+
+  const handleRetractVote = async () => {
+    if (!user || voting) return;
+
+    setVoting(true);
+    setError(null);
+
+    try {
+      const updatedPoll = await votesApi.retractVote(pollId);
+      setPoll(updatedPoll);
+    } catch (err: any) {
+      if (err.response?.data?.message) {
+        setError(err.response.data.message);
+      } else {
+        setError('Failed to retract vote. Please try again.');
+      }
+    } finally {
+      setVoting(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!user || poll?.author.id !== user.id) return;
+
+    try {
+      await pollsApi.deletePoll(pollId);
+      router.push('/dashboard');
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Failed to delete poll');
+      setShowDeleteDialog(false);
+    }
+  };
+
+  const copyPollLink = async () => {
+    if (!poll?.id) return;
+    
+    const pollUrl = `${window.location.origin}/polls/${poll.id}`;
+    try {
+      await navigator.clipboard.writeText(pollUrl);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      // Fallback for older browsers
+      const textArea = document.createElement('textarea');
+      textArea.value = pollUrl;
+      document.body.appendChild(textArea);
+      textArea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textArea);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
+  
+
+  if (loading) {
+    return (
+      <ProtectedRoute>
+        <div className="flex min-h-screen items-center justify-center">
+          <div className="text-center">
+            <div className="text-lg">Loading poll...</div>
+          </div>
+        </div>
+      </ProtectedRoute>
+    );
+  }
+
+  if (!poll) {
+    return (
+      <ProtectedRoute>
+        <div className="flex min-h-screen items-center justify-center">
+          <div className="text-center">
+            <div className="text-lg text-destructive">{error || 'Poll not found'}</div>
+            <Button onClick={() => router.push('/dashboard')} className="mt-4">
+              Go to Dashboard
+            </Button>
+          </div>
+        </div>
+      </ProtectedRoute>
+    );
+  }
+
+  const totalVotes = poll.options.reduce((sum, opt) => sum + opt.votes, 0);
+  const userVote = poll.options.find((opt) =>
+    opt.voters.some((v) => v.id === user?.id)
+  );
+  const showResults = totalVotes > 0 || userVote !== undefined;
+  const isOwner = user?.id === poll.author.id;
+
+  return (
+    <ProtectedRoute>
+      <div className="min-h-screen bg-background">
+        <Navbar />
+        <div className="container mx-auto p-4 max-w-3xl">
+          <Button
+            variant="ghost"
+            onClick={() => router.push('/dashboard')}
+            className="mb-4"
+          >
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back to Dashboard
+          </Button>
+
+          <Card>
+            <CardHeader>
+              <div className="flex items-start justify-between">
+                <div className="flex-1">
+                  <CardTitle className="text-2xl mb-2 gradient-pulse-text">{poll.question}</CardTitle>
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Avatar className="h-6 w-6">
+                      <AvatarImage src={poll.author.avatarUrl || undefined} />
+                      <AvatarFallback className="text-xs">
+                        {poll.author.name
+                          .split(' ')
+                          .map((n) => n[0])
+                          .join('')
+                          .toUpperCase()
+                          .slice(0, 2)}
+                      </AvatarFallback>
+                    </Avatar>
+                    <span>by {poll.author.name}</span>
+                  </div>
+                </div>
+                {isOwner && (
+                  <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+                    <AlertDialogTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => setShowDeleteDialog(true)}
+                        className="text-destructive hover:text-destructive"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Delete Poll</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Are you sure you want to delete this poll? This action cannot be undone.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction
+                          onClick={handleDelete}
+                          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                        >
+                          Delete
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                )}
+              </div>
+            </CardHeader>
+            <CardContent>
+              {error && (
+                <Alert variant="destructive" className="mb-4">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertTitle>Error</AlertTitle>
+                  <AlertDescription>{error}</AlertDescription>
+                </Alert>
+              )}
+
+              <div className="space-y-3">
+                {poll.options.map((option) => (
+                  <PollOption
+                    key={option.id}
+                    option={option}
+                    totalVotes={totalVotes}
+                    isSelected={userVote?.id === option.id}
+                    onClick={
+                        !voting
+                        ? () => handleVote(option.id)
+                        : undefined
+                    }
+                    showResults={true}
+                  />
+                ))}
+              </div>
+
+              {userVote && (
+                <Button
+                  variant="outline"
+                  onClick={handleRetractVote}
+                  disabled={voting}
+                  className="mt-4 w-full"
+                >
+                  {voting ? 'Retracting...' : 'Retract Vote'}
+                </Button>
+              )}
+
+              {showResults && (
+                <div className="mt-4 text-sm text-muted-foreground text-center">
+                  Total votes: {totalVotes}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+        <div className="container mx-auto p-4 max-w-3xl">
+          <AlertTitle>Share this poll with others!</AlertTitle>
+          <AlertDescription className="flex items-center gap-2 mt-2">
+            <div className="flex items-center gap-2 flex-1">
+              <code className="px-2 py-1 bg-muted rounded text-sm flex-1">
+                {typeof window !== 'undefined' ? `${window.location.origin}/polls/${poll.id}` : ''}
+              </code>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={copyPollLink}
+                className="shrink-0 min-w-[150px] w-full sm:w-auto"
+              >
+                {copied ? (
+                  <>
+                    <Check className="h-4 w-4 mr-2" />
+                    Copied!
+                  </>
+                ) : (
+                  <>
+                    <Copy className="h-4 w-4 mr-2" />
+                    Copy Link
+                  </>
+                )}
+              </Button>
+            </div>
+          </AlertDescription>
+        </div>
+      </div>
+
+    </ProtectedRoute>
+  );
+}
+

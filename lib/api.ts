@@ -67,6 +67,35 @@ export interface SignupRequest {
   password: string;
 }
 
+// Poll types
+export interface PollOption {
+  id: number;
+  text: string;
+  votes: number;
+  voters: Array<User>;
+}
+
+export interface Poll {
+  id: number;
+  question: string;
+  author: User;
+  options: PollOption[];
+}
+
+export interface PollsResponse {
+  data: Poll[];
+}
+
+export interface CreatePollRequest {
+  question: string;
+  options: string[];
+}
+
+export interface VoteRequest {
+  pollId: number;
+  optionId: number;
+}
+
 // Auth API functions
 export const authApi = {
   login: async (credentials: LoginRequest): Promise<AuthResponse> => {
@@ -84,4 +113,40 @@ export const authApi = {
     return response.data;
   },
 };
+
+// Polls API functions
+export const pollsApi = {
+  createPoll: async (data: CreatePollRequest): Promise<Poll> => {
+    const response = await api.post<Poll>('/api/polls', data);
+    return response.data;
+  },
+
+  getPolls: async (): Promise<PollsResponse> => {
+    const response = await api.get<PollsResponse>('/api/polls');
+    return response.data;
+  },
+
+  getPoll: async (id: number): Promise<Poll> => {
+    const response = await api.get<Poll>(`/api/polls/${id}`);
+    return response.data;
+  },
+
+  deletePoll: async (id: number): Promise<void> => {
+    await api.delete(`/api/polls/${id}`);
+  },
+};
+
+// Votes API functions
+export const votesApi = {
+  vote: async (data: VoteRequest): Promise<Poll> => {
+    const response = await api.post<Poll>('/api/votes', data);
+    return response.data;
+  },
+
+  retractVote: async (pollId: number): Promise<Poll> => {
+    const response = await api.delete<Poll>(`/api/votes/poll/${pollId}`);
+    return response.data;
+  },
+};
+
 

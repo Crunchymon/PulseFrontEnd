@@ -120,3 +120,37 @@
     @apply bg-background text-foreground;
   }
 }
+
+@layer utilities {
+  /* Pulse solid orange minimalist utilities */
+  .gradient-pulse {
+    background: #f97316;
+  }
+  
+  .gradient-pulse-text {
+    color: #f97316;
+  }
+  
+  .gradient-pulse-border {
+    border-color: #f97316;
+  }
+  
+  .gradient-pulse-hover {
+    background: #f97316;
+    transition: all 0.3s ease;
+  }
+  
+  .gradient-pulse-hover:hover {
+    background: #ea580c;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(249, 115, 22, 0.2);
+  }
+  
+  .gradient-pulse-shadow {
+    box-shadow: 0 2px 8px rgba(249, 115, 22, 0.15);
+  }
+  
+  .gradient-pulse-glow {
+    box-shadow: 0 0 16px rgba(249, 115, 22, 0.2);
+  }
+}
