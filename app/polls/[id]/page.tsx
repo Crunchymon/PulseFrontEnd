@@ -181,7 +181,7 @@ export default function PollDetailPage() {
             <CardHeader>
               <div className="flex items-start justify-between">
                 <div className="flex-1">
-                  <CardTitle className="text-2xl mb-2 gradient-pulse-text">{poll.question}</CardTitle>
+                  <CardTitle className="text-2xl mb-2">{poll.question}</CardTitle>
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     <Avatar className="h-6 w-6">
                       <AvatarImage src={poll.author.avatarUrl || undefined} />

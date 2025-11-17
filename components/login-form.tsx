@@ -37,7 +37,6 @@ export function LoginForm({
     e.preventDefault()
     setError(null)
     setIsLoading(true)
-
     try {
       await login(email, password)
     } catch (err: any) {
