@@ -7,8 +7,9 @@ import { PollOption } from '@/components/poll-option';
 import { useAuth } from '@/context/auth-context';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Trash2, ArrowLeft, AlertCircle , Plus, X, Copy, Check, CheckCircle2 } from 'lucide-react';
+import { Trash2, ArrowLeft, AlertCircle, Plus, X, Copy, Check, CheckCircle2 } from 'lucide-react';
 import { ProtectedRoute } from '@/components/protected-route';
 import { Navbar } from '@/components/navbar';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -109,7 +110,7 @@ export default function PollDetailPage() {
 
   const copyPollLink = async () => {
     if (!poll?.id) return;
-    
+
     const pollUrl = `${window.location.origin}/polls/${poll.id}`;
     try {
       await navigator.clipboard.writeText(pollUrl);
@@ -127,7 +128,7 @@ export default function PollDetailPage() {
       setTimeout(() => setCopied(false), 2000);
     }
   };
-  
+
 
   if (loading) {
     return (
@@ -247,7 +248,7 @@ export default function PollDetailPage() {
                     totalVotes={totalVotes}
                     isSelected={userVote?.id === option.id}
                     onClick={
-                        !voting
+                      !voting
                         ? () => handleVote(option.id)
                         : undefined
                     }
@@ -276,33 +277,37 @@ export default function PollDetailPage() {
           </Card>
         </div>
         <div className="container mx-auto p-4 max-w-3xl">
-          <AlertTitle>Share this poll with others!</AlertTitle>
-          <AlertDescription className="flex items-center gap-2 mt-2">
-            <div className="flex items-center gap-2 flex-1">
-              <code className="px-2 py-1 bg-muted rounded text-sm flex-1">
-                {typeof window !== 'undefined' ? `${window.location.origin}/polls/${poll.id}` : ''}
-              </code>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={copyPollLink}
-                className="shrink-0 min-w-[150px] w-full sm:w-auto"
-              >
-                {copied ? (
-                  <>
-                    <Check className="h-4 w-4 mr-2" />
-                    Copied!
-                  </>
-                ) : (
-                  <>
-                    <Copy className="h-4 w-4 mr-2" />
-                    Copy Link
-                  </>
-                )}
-              </Button>
-            </div>
-          </AlertDescription>
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-lg">Share this poll</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center gap-2">
+                <Input
+                  readOnly
+                  value={typeof window !== 'undefined' ? `${window.location.origin}/polls/${poll.id}` : ''}
+                  className="font-mono text-sm bg-muted/50 h-10 flex-1"
+                />
+                <Button
+                  type="button"
+                  onClick={copyPollLink}
+                  className={copied ? "gradient-pulse-hover text-white h-10 px-4 min-w-[120px]" : "h-10 px-4 min-w-[120px]"}
+                >
+                  {copied ? (
+                    <>
+                      <Check className="h-4 w-4 mr-2" />
+                      Copied
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="h-4 w-4 mr-2" />
+                      Copy
+                    </>
+                  )}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </div>
 

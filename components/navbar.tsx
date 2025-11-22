@@ -7,9 +7,11 @@ import { ModeToggle } from '@/components/mode-toggle';
 import PulseLogo from '@/components/PulseLogo';
 import { Button } from '@/components/ui/button';
 import { LogOut } from 'lucide-react';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Profile } from './profile';
 
 export function Navbar() {
-  const { isAuthenticated, logout } = useAuth();
+  const { isAuthenticated, logout , user} = useAuth();
   const pathname = usePathname();
 
   if (!isAuthenticated) {
@@ -26,31 +28,30 @@ export function Navbar() {
           <div className="flex items-center gap-4">
             <Link
               href="/dashboard"
-              className={`text-sm font-medium transition-colors ${
-                pathname === '/dashboard' 
-                  ? 'gradient-pulse-text font-semibold' 
+              className={`text-sm font-medium transition-colors ${pathname === '/dashboard'
+                  ? 'gradient-pulse-text font-semibold'
                   : 'text-muted-foreground hover:text-orange-500'
-              }`}
+                }`}
             >
               Dashboard
             </Link>
             <Link
               href="/polls/create"
-              className={`text-sm font-medium transition-colors ${
-                pathname === '/polls/create' 
-                  ? 'gradient-pulse-text font-semibold' 
+              className={`text-sm font-medium transition-colors ${pathname === '/polls/create'
+                  ? 'gradient-pulse-text font-semibold'
                   : 'text-muted-foreground hover:text-orange-500'
-              }`}
+                }`}
             >
               Create Poll
             </Link>
           </div>
         </div>
         <div className="flex items-center gap-2">
+          
           <ModeToggle />
-          <Button variant="ghost" size="icon" onClick={logout}>
-            <LogOut className="h-4 w-4" />
-          </Button>
+          <Profile />
+          
+           
         </div>
       </div>
     </nav>
