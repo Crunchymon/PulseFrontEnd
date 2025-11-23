@@ -11,6 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Trash2, ArrowLeft, AlertCircle, Plus, X, Copy, Check, CheckCircle2 } from 'lucide-react';
 import { ProtectedRoute } from '@/components/protected-route';
+import PulseLoading from '@/components/ui/pulse-loading';
 import { Navbar } from '@/components/navbar';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import {
@@ -133,10 +134,8 @@ export default function PollDetailPage() {
   if (loading) {
     return (
       <ProtectedRoute>
-        <div className="flex min-h-screen items-center justify-center">
-          <div className="text-center">
-            <div className="text-lg">Loading poll...</div>
-          </div>
+        <div className="flex min-h-screen items-center justify-center bg-background">
+          <PulseLoading size="large" gradientType="coral" text="Loading poll..." />
         </div>
       </ProtectedRoute>
     );

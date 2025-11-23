@@ -3,7 +3,7 @@ import { useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { LoginForm } from "@/components/login-form"
 import { useAuth } from "@/context/auth-context"
-
+import PulseLoading from "@/components/ui/pulse-loading"
 import PulseLogo from "@/components/PulseLogo"
 import Link from "next/link"
 
@@ -19,10 +19,8 @@ export default function LoginPage() {
 
   if (loading || isAuthenticated) {
     return (
-      <div className="flex min-h-screen items-center justify-center">
-        <div className="text-center">
-          <div className="text-lg">Loading...</div>
-        </div>
+      <div className="flex min-h-screen items-center justify-center bg-background">
+        <PulseLoading size="large" gradientType="coral" text="Authenticating..." />
       </div>
     )
   }

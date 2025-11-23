@@ -6,6 +6,7 @@ import { GalleryVerticalEnd } from "lucide-react"
 
 import { SignupForm } from "@/components/signup-form"
 import { useAuth } from "@/context/auth-context"
+import PulseLoading from "@/components/ui/pulse-loading"
 import PulseLogo from "@/components/PulseLogo"
 
 export default function SignupPage() {
@@ -20,10 +21,8 @@ export default function SignupPage() {
 
   if (loading || isAuthenticated) {
     return (
-      <div className="flex min-h-screen items-center justify-center">
-        <div className="text-center">
-          <div className="text-lg">Loading...</div>
-        </div>
+      <div className="flex min-h-screen items-center justify-center bg-background">
+        <PulseLoading size="large" gradientType="coral" text="Creating account..." />
       </div>
     )
   }

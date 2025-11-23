@@ -26,6 +26,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Plus, Search, ArrowUpDown, Trash2, ChevronLeft, ChevronRight, AlertCircle } from 'lucide-react';
 import Link from 'next/link';
+import PulseLoading from '@/components/ui/pulse-loading';
 
 export default function DashboardPage() {
   const { user } = useAuth();
@@ -151,7 +152,7 @@ export default function DashboardPage() {
                       />
                     </div>
                   </Field>
-                  
+
                   <Field className='flex-1'>
                     <FieldLabel>Sort</FieldLabel>
                     <Button
@@ -177,8 +178,8 @@ export default function DashboardPage() {
           )}
 
           {loading ? (
-            <div className="text-center py-12">
-              <div className="text-lg text-muted-foreground">Loading polls...</div>
+            <div className="flex items-center justify-center py-12">
+              <PulseLoading size="default" gradientType="coral" text="Loading polls..." />
             </div>
           ) : polls.length === 0 ? (
             <Empty>

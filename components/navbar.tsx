@@ -22,7 +22,7 @@ export function Navbar() {
     <nav className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b-orange-500/10">
       <div className="container flex h-14 items-center justify-between px-4">
         <div className="flex items-center gap-6">
-          <Link href="/dashboard" className="flex items-center">
+          <Link href="/" className="flex items-center">
             <PulseLogo size="small" />
           </Link>
           <div className="flex items-center gap-4">

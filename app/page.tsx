@@ -3,7 +3,7 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/auth-context';
-
+import PulseLoading from '@/components/ui/pulse-loading';
 export default function Home() {
   const { isAuthenticated, loading } = useAuth();
   const router = useRouter();
@@ -11,7 +11,7 @@ export default function Home() {
   useEffect(() => {
     if (!loading) {
       if (isAuthenticated) {
-        router.push('/dashboard');
+        router.push('/landing');
       } else {
         router.push('/auth/login');
       }
@@ -21,7 +21,7 @@ export default function Home() {
   return (
     <div className="flex min-h-screen items-center justify-center">
       <div className="text-center">
-        <div className="text-lg">Loading...</div>
+        <PulseLoading />
       </div>
     </div>
   );
