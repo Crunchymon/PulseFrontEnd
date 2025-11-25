@@ -1,6 +1,6 @@
 'use client';
 import { useEffect } from "react"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { LoginForm } from "@/components/login-form"
 import { useAuth } from "@/context/auth-context"
 import PulseLoading from "@/components/ui/pulse-loading"
@@ -10,12 +10,14 @@ import Link from "next/link"
 export default function LoginPage() {
   const { isAuthenticated, loading } = useAuth()
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const redirectUrl = searchParams.get('redirect') || '/dashboard'
 
   useEffect(() => {
     if (!loading && isAuthenticated) {
-      router.push('/dashboard')
+      router.push(redirectUrl)
     }
-  }, [isAuthenticated, loading, router])
+  }, [isAuthenticated, loading, router, redirectUrl])
 
   if (loading || isAuthenticated) {
     return (

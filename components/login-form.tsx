@@ -1,8 +1,11 @@
 'use client';
 
-import { useState } from "react"
+import { useState, useEffect, useRef } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
+import Link from "next/link"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
+import axios from "axios"
 import {
   Card,
   CardContent,
@@ -22,6 +25,8 @@ import { Input } from "@/components/ui/input"
 import { useAuth } from "@/context/auth-context"
 import { Eye, EyeOff } from "lucide-react"
 
+
+
 export function LoginForm({
   className,
   ...props
@@ -31,7 +36,11 @@ export function LoginForm({
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
-  const { login } = useAuth()
+  const { login, googleLogin } = useAuth()
+  const router = useRouter()
+  const searchParams = useSearchParams()
+  const redirectUrl = searchParams.get('redirect') || '/dashboard'
+  const hasFetched = useRef(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -39,6 +48,7 @@ export function LoginForm({
     setIsLoading(true)
     try {
       await login(email, password)
+      router.push(redirectUrl)
     } catch (err: any) {
       if (err.response?.data?.message) {
         setError(err.response.data.message)
@@ -55,18 +65,88 @@ export function LoginForm({
     }
   }
 
+  const handleGoogleClick = () => {
+    const rootUrl = "https://accounts.google.com/o/oauth2/v2/auth";
+    const options = {
+      redirect_uri: process.env.NEXT_PUBLIC_GOOGLE_REDIRECT_URI,
+      client_id: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID,
+      access_type: "offline",
+      response_type: "code",
+      prompt: "consent",
+      scope: [
+        "https://www.googleapis.com/auth/userinfo.profile",
+        "https://www.googleapis.com/auth/userinfo.email",
+      ].join(" "),
+      state: JSON.stringify({ redirectUrl }), // Pass redirectUrl in state
+    };
+
+    const qs = new URLSearchParams(options as any).toString();
+
+    window.location.href = `${rootUrl}?${qs}`;
+  };
+
+  // Render: <button onClick={handleGoogleClick}>Sign in with Google</button>
+
+
+  useEffect(() => {
+    const code = searchParams.get('code');
+    const state = searchParams.get('state'); // Get state from URL
+
+    if (code && !hasFetched.current) {
+      hasFetched.current = true;
+
+      let finalRedirectUrl = '/dashboard';
+      if (state) {
+        try {
+          const parsedState = JSON.parse(state);
+          if (parsedState.redirectUrl) {
+            finalRedirectUrl = parsedState.redirectUrl;
+          }
+        } catch (e) {
+          console.error("Failed to parse state", e);
+        }
+      }
+
+      // If we find a code, send it to OUR backend immediately
+      axios.post('http://localhost:8000/api/auth/google', { code })
+        .then(res => {
+          // Success! Login complete.
+          googleLogin(res.data.token, res.data.user);
+          router.push(finalRedirectUrl);
+        })
+        .catch(err => {
+          setError("Google login failed. Please try again.");
+          console.error("Google login failed", err);
+          // Handle error (e.g., show a toast message)
+        });
+    }
+  }, [searchParams, router]);
   return (
     <div className={cn("flex flex-col gap-6", className)} {...props}>
       <Card>
         <CardHeader className="text-center">
           <CardTitle className="text-xl">Welcome back</CardTitle>
           <CardDescription>
-            Enter your email and password to login
+            Login with your Google account
           </CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit}>
             <FieldGroup>
+              <Field>
+                <Button variant="outline" type="button" onClick={handleGoogleClick} className="w-full justify-center gap-2">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                    <path
+                      d="M12.48 10.92v3.28h7.84c-.24 1.84-.853 3.187-1.787 4.133-1.147 1.147-2.933 2.4-6.053 2.4-4.827 0-8.6-3.893-8.6-8.72s3.773-8.72 8.6-8.72c2.6 0 4.507 1.027 5.907 2.347l2.307-2.307C18.747 1.44 16.133 0 12.48 0 5.867 0 .307 5.387.307 12s5.56 12 12.173 12c3.573 0 6.267-1.173 8.373-3.36 2.16-2.16 2.84-5.213 2.84-7.667 0-.76-.053-1.467-.173-2.053H12.48z"
+                      fill="currentColor"
+                    />
+                  </svg>
+                  Login with Google
+                </Button>
+              </Field>
+              <FieldSeparator className="*:data-[slot=field-separator-content]:bg-card">
+                Or continue with
+              </FieldSeparator>
               <Field>
                 <FieldLabel htmlFor="email">Email</FieldLabel>
                 <Input
@@ -118,16 +198,16 @@ export function LoginForm({
                 </Button>
                 <FieldDescription className="text-center">
                   Don&apos;t have an account?{" "}
-                  <a href="/auth/signup" className="underline underline-offset-4">
+                  <Link href={`/auth/signup?redirect=${encodeURIComponent(redirectUrl)}`} className="underline underline-offset-4">
                     Sign up
-                  </a>
+                  </Link>
                 </FieldDescription>
               </Field>
             </FieldGroup>
           </form>
         </CardContent>
       </Card>
-    
+
     </div>
   )
 }

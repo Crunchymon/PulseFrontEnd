@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect } from "react"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { GalleryVerticalEnd } from "lucide-react"
 
 import { SignupForm } from "@/components/signup-form"
@@ -12,12 +12,14 @@ import PulseLogo from "@/components/PulseLogo"
 export default function SignupPage() {
   const { isAuthenticated, loading } = useAuth()
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const redirectUrl = searchParams.get('redirect') || '/dashboard'
 
   useEffect(() => {
     if (!loading && isAuthenticated) {
-      router.push('/dashboard')
+      router.push(redirectUrl)
     }
-  }, [isAuthenticated, loading, router])
+  }, [isAuthenticated, loading, router, redirectUrl])
 
   if (loading || isAuthenticated) {
     return (

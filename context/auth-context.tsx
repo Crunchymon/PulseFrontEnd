@@ -9,6 +9,7 @@ interface AuthContextType {
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
   signup: (name: string, email: string, password: string) => Promise<void>;
+  googleLogin: (token: string, user: User) => void;
   logout: () => void;
   isAuthenticated: boolean;
 }
@@ -59,7 +60,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       localStorage.setItem('token', response.token);
       localStorage.setItem('user', JSON.stringify(response.user));
       setUser(response.user);
-      router.push('/dashboard');
     } catch (error: any) {
       throw error;
     }
@@ -71,10 +71,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       localStorage.setItem('token', response.token);
       localStorage.setItem('user', JSON.stringify(response.user));
       setUser(response.user);
-      router.push('/dashboard');
     } catch (error: any) {
       throw error;
     }
+  };
+
+  const googleLogin = (token: string, userData: User) => {
+    localStorage.setItem('token', token);
+    localStorage.setItem('user', JSON.stringify(userData));
+    setUser(userData);
   };
 
   const logout = () => {
@@ -91,6 +96,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         loading,
         login,
         signup,
+        googleLogin,
         logout,
         isAuthenticated: !!user,
       }}
