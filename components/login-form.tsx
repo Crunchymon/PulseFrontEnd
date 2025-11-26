@@ -25,7 +25,7 @@ import { Input } from "@/components/ui/input"
 import { useAuth } from "@/context/auth-context"
 import { Eye, EyeOff } from "lucide-react"
 
-
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
 export function LoginForm({
   className,
@@ -108,7 +108,7 @@ export function LoginForm({
       }
 
       // If we find a code, send it to OUR backend immediately
-      axios.post('http://localhost:8000/api/auth/google', { code })
+      axios.post(`${API_BASE_URL}/api/auth/google`, { code })
         .then(res => {
           // Success! Login complete.
           googleLogin(res.data.token, res.data.user);
