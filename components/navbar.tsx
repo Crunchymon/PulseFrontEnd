@@ -3,7 +3,6 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/context/auth-context';
-import { ModeToggle } from '@/components/mode-toggle';
 import PulseLogo from '@/components/PulseLogo';
 import { Button } from '@/components/ui/button';
 import { LogOut } from 'lucide-react';
@@ -11,7 +10,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Profile } from './profile';
 
 export function Navbar() {
-  const { isAuthenticated, logout , user} = useAuth();
+  const { isAuthenticated, logout, user } = useAuth();
   const pathname = usePathname();
 
   if (!isAuthenticated) {
@@ -25,12 +24,14 @@ export function Navbar() {
           <Link href="/" className="flex items-center">
             <PulseLogo size="small" />
           </Link>
+
+          {/* Navigation Links */}
           <div className="flex items-center gap-4">
             <Link
               href="/dashboard"
               className={`text-sm font-medium transition-colors ${pathname === '/dashboard'
-                  ? 'gradient-pulse-text font-semibold'
-                  : 'text-muted-foreground hover:text-orange-500'
+                ? 'gradient-pulse-text font-semibold'
+                : 'text-muted-foreground hover:text-orange-500'
                 }`}
             >
               Dashboard
@@ -38,8 +39,8 @@ export function Navbar() {
             <Link
               href="/polls/create"
               className={`text-sm font-medium transition-colors ${pathname === '/polls/create'
-                  ? 'gradient-pulse-text font-semibold'
-                  : 'text-muted-foreground hover:text-orange-500'
+                ? 'gradient-pulse-text font-semibold'
+                : 'text-muted-foreground hover:text-orange-500'
                 }`}
             >
               Create Poll
@@ -47,15 +48,13 @@ export function Navbar() {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          
-          <ModeToggle />
+
           <Profile />
-          
-           
+
+
         </div>
       </div>
     </nav>
   );
 }
-
 

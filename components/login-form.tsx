@@ -99,6 +99,7 @@ export function LoginForm({
       if (state) {
         try {
           const parsedState = JSON.parse(state);
+          console.log(parsedState);
           if (parsedState.redirectUrl) {
             finalRedirectUrl = parsedState.redirectUrl;
           }
@@ -111,6 +112,8 @@ export function LoginForm({
       axios.post(`${API_BASE_URL}/api/auth/google`, { code })
         .then(res => {
           // Success! Login complete.
+          console.log("Google login successful");
+          console.log(finalRedirectUrl);
           googleLogin(res.data.token, res.data.user);
           router.push(finalRedirectUrl);
         })

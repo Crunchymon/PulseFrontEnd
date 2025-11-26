@@ -40,7 +40,7 @@ export default function PulseLogo({
   const isDark = mounted && (resolvedTheme === 'dark' || theme === 'dark');
   
   // Text color based on theme
-  const textColor = isDark ? "#ffffff" : `url(#${textGradientId})`;
+  const textColor = isDark ? "#ffffff" : "#000000";
 
   return (
     <svg

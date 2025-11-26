@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { LogOut, Moon, Sun, UserPen } from "lucide-react"
+import { LogOut, Moon, Sun } from "lucide-react"
 import { useTheme } from "next-themes"
 import { useAuth } from '@/context/auth-context';
 import { Button } from "@/components/ui/button"
@@ -19,8 +19,13 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 export function Profile() {
   const { user, logout } = useAuth();
+  const { theme, setTheme } = useTheme();
 
   if (!user) return null;
+
+  const toggleTheme = () => {
+    setTheme(theme === 'dark' ? 'light' : 'dark');
+  };
 
   return (
     <DropdownMenu>
@@ -50,6 +55,15 @@ export function Profile() {
             )}
           </div>
         </div>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem className="cursor-pointer" onClick={toggleTheme}>
+          {theme === 'dark' ? (
+            <Sun className="mr-2 h-4 w-4" />
+          ) : (
+            <Moon className="mr-2 h-4 w-4" />
+          )}
+          <span>{theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}</span>
+        </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem className="cursor-pointer" onClick={logout}>
           <LogOut className="mr-2 h-4 w-4" />

@@ -14,10 +14,11 @@ export default function LoginPageClient() {
   const redirectUrl = searchParams.get('redirect') || '/dashboard'
 
   useEffect(() => {
-    if (!loading && isAuthenticated) {
+    const code = searchParams.get('code');
+    if (!loading && isAuthenticated && !code) {
       router.push(redirectUrl)
     }
-  }, [isAuthenticated, loading, router, redirectUrl])
+  }, [isAuthenticated, loading, router, redirectUrl, searchParams])
 
   if (loading || isAuthenticated) {
     return (
