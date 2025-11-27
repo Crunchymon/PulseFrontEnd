@@ -77,12 +77,29 @@ export interface PollOption {
 export interface Poll {
   id: number;
   question: string;
+  createdAt: string;
   author: User;
   options: PollOption[];
 }
 
+export interface PollsMeta {
+  totalPolls: number;
+  totalPages: number;
+  currentPage: number;
+  limit: number;
+}
+
 export interface PollsResponse {
   data: Poll[];
+  meta: PollsMeta;
+}
+
+export interface GetPollsParams {
+  page?: number;
+  limit?: number;
+  sortBy?: 'createdAt' | 'updatedAt' | 'question' | 'votes';
+  order?: 'asc' | 'desc';
+  search?: string;
 }
 
 export interface CreatePollRequest {
@@ -125,8 +142,8 @@ export const pollsApi = {
     return response.data;
   },
 
-  getPolls: async (): Promise<PollsResponse> => {
-    const response = await api.get<PollsResponse>('/api/polls');
+  getPolls: async (params: GetPollsParams = {}): Promise<PollsResponse> => {
+    const response = await api.get<PollsResponse>('/api/polls', { params });
     return response.data;
   },
 

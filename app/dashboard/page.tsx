@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { ProtectedRoute } from '@/components/protected-route';
 import { Navbar } from '@/components/navbar';
 import { useAuth } from '@/context/auth-context';
-import { pollsApi, Poll } from '@/lib/api';
+import { pollsApi, Poll, PollsMeta } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -26,45 +26,88 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Plus, Search, ArrowUpDown, Trash2, ChevronLeft, ChevronRight, AlertCircle } from 'lucide-react';
 import Link from 'next/link';
+import { cn } from "@/lib/utils";
 import PulseLoading from '@/components/ui/pulse-loading';
+import {
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination"
 
 export default function DashboardPage() {
   const { user } = useAuth();
   const router = useRouter();
-  const [allPolls, setAllPolls] = useState<Poll[]>([]);
+  const [polls, setPolls] = useState<Poll[]>([]);
+  const [meta, setMeta] = useState<PollsMeta>({
+    totalPolls: 0,
+    totalPages: 1,
+    currentPage: 1,
+    limit: 4
+  });
   const [loading, setLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [sortOrder, setSortOrder] = useState<'newest' | 'oldest'>('newest');
-  const [currentPage, setCurrentPage] = useState(1);
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+  const [sortBy, setSortBy] = useState<'createdAt' | 'updatedAt' | 'question' | 'votes'>('createdAt');
   const [error, setError] = useState<string | null>(null);
   const [deletePollId, setDeletePollId] = useState<number | null>(null);
-  const limit = 10;
+
+  // Debounce search query
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchQuery);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  // Reset page when debounced search changes
+  useEffect(() => {
+    setMeta(prev => ({ ...prev, currentPage: 1 }));
+  }, [debouncedSearch]);
 
   const fetchPolls = async (silent = false) => {
-    if (!silent) setLoading(true);
+    if (!silent && polls.length === 0) setLoading(true);
+    if (!silent && polls.length > 0) setIsRefreshing(true);
     setError(null);
     try {
-      // Fetch all polls without pagination
-      const response = await pollsApi.getPolls();
-      setAllPolls(response.data);
+      const response = await pollsApi.getPolls({
+        page: meta.currentPage,
+        limit: meta.limit,
+        search: debouncedSearch,
+        sortBy,
+        order: sortOrder
+      });
+      setPolls(response.data);
+      setMeta(response.meta);
     } catch (err: any) {
       setError(err.response?.data?.message || 'Failed to load polls');
     } finally {
-      if (!silent) setLoading(false);
+      setLoading(false);
+      setIsRefreshing(false);
     }
   };
 
   useEffect(() => {
     fetchPolls();
-    // Poll for updates every 5 seconds to keep author names and votes fresh
-    const interval = setInterval(() => fetchPolls(true), 5000);
+  }, [meta.currentPage, debouncedSearch, sortOrder, sortBy]);
+
+  // Poll for updates every 10 seconds (less frequent to avoid spamming with params)
+  useEffect(() => {
+    const interval = setInterval(() => fetchPolls(true), 10000);
     return () => clearInterval(interval);
-  }, []);
+  }, [meta.currentPage, debouncedSearch, sortOrder, sortBy]);
+
+
 
   // Optimistically update polls when user profile changes
   useEffect(() => {
     if (user) {
-      setAllPolls((currentPolls) =>
+      setPolls((currentPolls) =>
         currentPolls.map((poll) =>
           poll.author.id === user.id
             ? { ...poll, author: { ...poll.author, name: user.name, avatarUrl: user.avatarUrl } }
@@ -74,48 +117,13 @@ export default function DashboardPage() {
     }
   }, [user]);
 
-  // Client-side filtering, sorting, and pagination
-  const filteredAndSortedPolls = useMemo(() => {
-    let result = [...allPolls];
 
-    // Filter by search query
-    if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase();
-      result = result.filter((poll) =>
-        poll.question.toLowerCase().includes(query)
-      );
-    }
-
-    // Sort
-    result.sort((a, b) => {
-      // Assuming polls have createdAt or we can use id as proxy
-      // For now, using id as a proxy for creation time (higher id = newer)
-      if (sortOrder === 'newest') {
-        return b.id - a.id;
-      } else {
-        return a.id - b.id;
-      }
-    });
-
-    return result;
-  }, [allPolls, searchQuery, sortOrder]);
-
-  // Pagination
-  const totalItems = filteredAndSortedPolls.length;
-  const totalPages = Math.ceil(totalItems / limit);
-  const startIndex = (currentPage - 1) * limit;
-  const endIndex = startIndex + limit;
-  const polls = filteredAndSortedPolls.slice(startIndex, endIndex);
-
-  // Reset to page 1 when search or sort changes
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [searchQuery, sortOrder]);
 
   const handleDelete = async (pollId: number) => {
     try {
       await pollsApi.deletePoll(pollId);
-      setAllPolls(allPolls.filter((p) => p.id !== pollId));
+      // Refresh the current page
+      fetchPolls(true);
       setDeletePollId(null);
     } catch (err: any) {
       setError(err.response?.data?.message || 'Failed to delete poll');
@@ -123,7 +131,11 @@ export default function DashboardPage() {
   };
 
   const toggleSort = () => {
-    setSortOrder(sortOrder === 'newest' ? 'oldest' : 'newest');
+    setSortOrder(sortOrder === 'desc' ? 'asc' : 'desc');
+  };
+
+  const handlePageChange = (page: number) => {
+    setMeta(prev => ({ ...prev, currentPage: page }));
   };
 
   return (
@@ -177,7 +189,7 @@ export default function DashboardPage() {
                       className="min-w-[150px] w-full sm:w-auto"
                     >
                       <ArrowUpDown className="h-4 w-4 mr-2" />
-                      {sortOrder === 'newest' ? 'Newest First' : 'Oldest First'}
+                      {sortOrder === 'desc' ? 'Newest First' : 'Oldest First'}
                     </Button>
                   </Field>
                 </div>
@@ -225,7 +237,7 @@ export default function DashboardPage() {
             </Empty>
           ) : (
             <>
-              <div className="space-y-4 mb-6">
+              <div className={cn("space-y-4 mb-6 transition-opacity duration-200", isRefreshing && "opacity-50 pointer-events-none")}>
                 {polls.map((poll) => {
                   const totalVotes = poll.options.reduce((sum, opt) => sum + opt.votes, 0);
                   return (
@@ -251,6 +263,8 @@ export default function DashboardPage() {
                                 </AvatarFallback>
                               </Avatar>
                               <span>{poll.author.name}</span>
+                              <span className="mx-1">•</span>
+                              <span>{new Date(poll.createdAt).toLocaleDateString()} {new Date(poll.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                             </div>
                           </div>
                           {poll.author.id === user?.id && (
@@ -303,29 +317,105 @@ export default function DashboardPage() {
                 })}
               </div>
 
-              {totalPages > 1 && (
-                <div className="flex items-center justify-between">
+              {meta.totalPages > 1 && (
+                <div className="flex flex-col items-center gap-4 mt-6">
                   <div className="text-sm text-muted-foreground">
-                    Page {currentPage} of {totalPages} • {totalItems} total polls
+                    Page {meta.currentPage} of {meta.totalPages}
                   </div>
-                  <div className="flex gap-2">
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                      disabled={currentPage === 1}
-                    >
-                      <ChevronLeft className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                      disabled={currentPage === totalPages}
-                    >
-                      <ChevronRight className="h-4 w-4" />
-                    </Button>
-                  </div>
+                  <Pagination>
+                    <PaginationContent>
+                      <PaginationItem>
+                        <PaginationPrevious
+                          href="#"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            if (meta.currentPage > 1) handlePageChange(meta.currentPage - 1);
+                          }}
+                          className={meta.currentPage <= 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                        />
+                      </PaginationItem>
+
+                      {/* First Page */}
+                      {meta.currentPage > 2 && (
+                        <PaginationItem>
+                          <PaginationLink
+                            href="#"
+                            onClick={(e) => { e.preventDefault(); handlePageChange(1); }}
+                          >
+                            1
+                          </PaginationLink>
+                        </PaginationItem>
+                      )}
+
+                      {/* Ellipsis if far from start */}
+                      {meta.currentPage > 3 && (
+                        <PaginationItem>
+                          <PaginationEllipsis />
+                        </PaginationItem>
+                      )}
+
+                      {/* Previous Page if not first */}
+                      {meta.currentPage > 1 && (
+                        <PaginationItem>
+                          <PaginationLink
+                            href="#"
+                            onClick={(e) => { e.preventDefault(); handlePageChange(meta.currentPage - 1); }}
+                          >
+                            {meta.currentPage - 1}
+                          </PaginationLink>
+                        </PaginationItem>
+                      )}
+
+                      {/* Current Page */}
+                      <PaginationItem>
+                        <PaginationLink href="#" isActive>
+                          {meta.currentPage}
+                        </PaginationLink>
+                      </PaginationItem>
+
+                      {/* Next Page if not last */}
+                      {meta.currentPage < meta.totalPages && (
+                        <PaginationItem>
+                          <PaginationLink
+                            href="#"
+                            onClick={(e) => { e.preventDefault(); handlePageChange(meta.currentPage + 1); }}
+                          >
+                            {meta.currentPage + 1}
+                          </PaginationLink>
+                        </PaginationItem>
+                      )}
+
+                      {/* Ellipsis if far from end */}
+                      {meta.currentPage < meta.totalPages - 2 && (
+                        <PaginationItem>
+                          <PaginationEllipsis />
+                        </PaginationItem>
+                      )}
+
+                      {/* Last Page */}
+                      {meta.currentPage < meta.totalPages - 1 && (
+                        <PaginationItem>
+                          <PaginationLink
+                            href="#"
+                            onClick={(e) => { e.preventDefault(); handlePageChange(meta.totalPages); }}
+                          >
+                            {meta.totalPages}
+                          </PaginationLink>
+                        </PaginationItem>
+                      )}
+
+                      <PaginationItem>
+                        <PaginationNext
+                          href="#"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            if (meta.currentPage < meta.totalPages) handlePageChange(meta.currentPage + 1);
+                          }}
+                          className={meta.currentPage >= meta.totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                        />
+                      </PaginationItem>
+                    </PaginationContent>
+                  </Pagination>
                 </div>
               )}
             </>
