@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { Poll, pollsApi, votesApi } from '@/lib/api';
 import { PollOption } from '@/components/poll-option';
@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Trash2, ArrowLeft, AlertCircle, Plus, X, Copy, Check, CheckCircle2 } from 'lucide-react';
+import { Trash2, ArrowLeft, AlertCircle, Plus, X, Copy, Check, CheckCircle2, Pencil, Loader2 } from 'lucide-react';
 import { ProtectedRoute } from '@/components/protected-route';
 import PulseLoading from '@/components/ui/pulse-loading';
 import { Navbar } from '@/components/navbar';
@@ -36,12 +36,25 @@ export default function PollDetailPage() {
   const [error, setError] = useState<string | null>(null);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const isEditingRef = useRef(isEditing);
+  const [newQuestion, setNewQuestion] = useState('');
+  const [isUpdating, setIsUpdating] = useState(false);
   const pollId = parseInt(params.id as string);
+
+  // Keep ref in sync with state
+  useEffect(() => {
+    isEditingRef.current = isEditing;
+  }, [isEditing]);
 
   const fetchPoll = async () => {
     try {
       const data = await pollsApi.getPoll(pollId);
       setPoll(data);
+      // Use ref to check current editing state inside interval closure
+      if (!isEditingRef.current) {
+        setNewQuestion(data.question);
+      }
       setError(null);
     } catch (err: any) {
       setError(err.response?.data?.message || 'Failed to load poll');
@@ -130,6 +143,26 @@ export default function PollDetailPage() {
     }
   };
 
+  const handleUpdateQuestion = async () => {
+    if (!poll || !newQuestion.trim() || newQuestion === poll.question) {
+      setIsEditing(false);
+      setNewQuestion(poll?.question || '');
+      return;
+    }
+
+    setIsUpdating(true);
+    try {
+      const updatedPoll = await pollsApi.updatePoll(poll.id, { question: newQuestion });
+      // Merge the updated question with the existing poll data to preserve options and author
+      setPoll((prev) => prev ? { ...prev, question: updatedPoll.question } : null);
+      setIsEditing(false);
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Failed to update question');
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
 
   if (loading) {
     return (
@@ -181,7 +214,55 @@ export default function PollDetailPage() {
             <CardHeader>
               <div className="flex items-start justify-between">
                 <div className="flex-1">
-                  <CardTitle className="text-2xl mb-2">{poll.question}</CardTitle>
+                  {isEditing ? (
+                    <div className="flex items-center gap-2 mb-2">
+                      <Input
+                        value={newQuestion}
+                        onChange={(e) => setNewQuestion(e.target.value)}
+                        className="text-xl font-semibold h-10"
+                        autoFocus
+                      />
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-10 w-10 shrink-0 text-green-500 hover:text-green-600"
+                        onClick={handleUpdateQuestion}
+                        disabled={isUpdating}
+                      >
+                        {isUpdating ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Check className="h-4 w-4" />
+                        )}
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-10 w-10 shrink-0 text-destructive hover:text-destructive"
+                        onClick={() => {
+                          setIsEditing(false);
+                          setNewQuestion(poll.question);
+                        }}
+                        disabled={isUpdating}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="flex items-start gap-2 group mb-2">
+                      <CardTitle className="text-2xl">{poll.question}</CardTitle>
+                      {isOwner && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity mt-1"
+                          onClick={() => setIsEditing(true)}
+                        >
+                          <Pencil className="h-3 w-3" />
+                        </Button>
+                      )}
+                    </div>
+                  )}
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     <Avatar className="h-6 w-6">
                       <AvatarImage src={poll.author.avatarUrl || undefined} />

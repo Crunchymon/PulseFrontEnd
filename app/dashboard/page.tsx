@@ -40,8 +40,8 @@ export default function DashboardPage() {
   const [deletePollId, setDeletePollId] = useState<number | null>(null);
   const limit = 10;
 
-  const fetchPolls = async () => {
-    setLoading(true);
+  const fetchPolls = async (silent = false) => {
+    if (!silent) setLoading(true);
     setError(null);
     try {
       // Fetch all polls without pagination
@@ -50,13 +50,29 @@ export default function DashboardPage() {
     } catch (err: any) {
       setError(err.response?.data?.message || 'Failed to load polls');
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
 
   useEffect(() => {
     fetchPolls();
+    // Poll for updates every 5 seconds to keep author names and votes fresh
+    const interval = setInterval(() => fetchPolls(true), 5000);
+    return () => clearInterval(interval);
   }, []);
+
+  // Optimistically update polls when user profile changes
+  useEffect(() => {
+    if (user) {
+      setAllPolls((currentPolls) =>
+        currentPolls.map((poll) =>
+          poll.author.id === user.id
+            ? { ...poll, author: { ...poll.author, name: user.name, avatarUrl: user.avatarUrl } }
+            : poll
+        )
+      );
+    }
+  }, [user]);
 
   // Client-side filtering, sorting, and pagination
   const filteredAndSortedPolls = useMemo(() => {

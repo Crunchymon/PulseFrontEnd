@@ -111,6 +111,11 @@ export const authApi = {
     const response = await api.get<User>('/api/users/me');
     return response.data;
   },
+
+  updateUser: async (data: UpdateUserRequest): Promise<User> => {
+    const response = await api.patch<User>('/api/users/me', data);
+    return response.data;
+  },
 };
 
 // Polls API functions
@@ -133,6 +138,11 @@ export const pollsApi = {
   deletePoll: async (id: number): Promise<void> => {
     await api.delete(`/api/polls/${id}`);
   },
+
+  updatePoll: async (id: number, data: UpdatePollRequest): Promise<Poll> => {
+    const response = await api.patch<Poll>(`/api/polls/${id}`, data);
+    return response.data;
+  },
 };
 
 // Votes API functions
@@ -147,5 +157,14 @@ export const votesApi = {
     return response.data;
   },
 };
+
+export interface UpdateUserRequest {
+  name: string;
+}
+
+export interface UpdatePollRequest {
+  question: string;
+}
+
 
 

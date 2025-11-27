@@ -12,6 +12,7 @@ interface AuthContextType {
   googleLogin: (token: string, user: User) => void;
   logout: () => void;
   isAuthenticated: boolean;
+  updateUser: (name: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -89,6 +90,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     router.push('/auth/login');
   };
 
+  const updateUser = async (name: string) => {
+    try {
+      const updatedUser = await authApi.updateUser({ name });
+      localStorage.setItem('user', JSON.stringify(updatedUser));
+      setUser(updatedUser);
+    } catch (error) {
+      throw error;
+    }
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -99,6 +110,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         googleLogin,
         logout,
         isAuthenticated: !!user,
+        updateUser,
       }}
     >
       {children}

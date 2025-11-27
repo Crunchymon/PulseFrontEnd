@@ -1,10 +1,11 @@
 "use client"
 
-import * as React from "react"
-import { LogOut, Moon, Sun } from "lucide-react"
+import React, { useState, useEffect } from "react"
+import { LogOut, Moon, Sun, Pencil, Check, X, Loader2 } from "lucide-react"
 import { useTheme } from "next-themes"
 import { useAuth } from '@/context/auth-context';
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
 
 import {
   DropdownMenu,
@@ -18,13 +19,49 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 
 export function Profile() {
-  const { user, logout } = useAuth();
+  const { user, logout, updateUser } = useAuth();
   const { theme, setTheme } = useTheme();
+  const [isEditing, setIsEditing] = useState(false);
+  const [newName, setNewName] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    if (user?.name) {
+      setNewName(user.name);
+    }
+  }, [user?.name]);
 
   if (!user) return null;
 
   const toggleTheme = () => {
     setTheme(theme === 'dark' ? 'light' : 'dark');
+  };
+
+  const handleSave = async () => {
+    if (!newName.trim() || newName === user.name) {
+      setIsEditing(false);
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      await updateUser(newName);
+      setIsEditing(false);
+    } catch (error) {
+      console.error('Failed to update name:', error);
+      // Ideally show a toast here, but for now we'll just log it
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      handleSave();
+    } else if (e.key === 'Escape') {
+      setIsEditing(false);
+      setNewName(user.name);
+    }
   };
 
   return (
@@ -44,16 +81,64 @@ export function Profile() {
           </Avatar>
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-56 p-2" forceMount>
-        <div className="flex items-center justify-start gap-2 p-2">
-          <div className="flex flex-col space-y-1 leading-none">
-            <p className="font-medium leading-none">{user.name}</p>
-            {user.email && (
-              <p className="w-[200px] truncate text-xs text-muted-foreground">
-                {user.email}
-              </p>
-            )}
-          </div>
+      <DropdownMenuContent align="end" className="w-64 p-2" forceMount>
+        <div className="flex flex-col gap-2 p-2">
+          {isEditing ? (
+            <div className="flex items-center gap-2">
+              <Input
+                value={newName}
+                onChange={(e) => setNewName(e.target.value)}
+                onKeyDown={handleKeyDown}
+                className="h-8 text-sm"
+                autoFocus
+                disabled={isLoading}
+              />
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 shrink-0 text-green-500 hover:text-green-600"
+                onClick={handleSave}
+                disabled={isLoading}
+              >
+                {isLoading ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Check className="h-4 w-4" />
+                )}
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 shrink-0 text-destructive hover:text-destructive"
+                onClick={() => {
+                  setIsEditing(false);
+                  setNewName(user.name);
+                }}
+                disabled={isLoading}
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+          ) : (
+            <div className="flex items-center justify-between group">
+              <div className="flex flex-col space-y-1 leading-none overflow-hidden">
+                <p className="font-medium leading-none truncate">{user.name}</p>
+                {user.email && (
+                  <p className="truncate text-xs text-muted-foreground">
+                    {user.email}
+                  </p>
+                )}
+              </div>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                onClick={() => setIsEditing(true)}
+              >
+                <Pencil className="h-3 w-3" />
+              </Button>
+            </div>
+          )}
         </div>
         <DropdownMenuSeparator />
         <DropdownMenuItem className="cursor-pointer" onClick={toggleTheme}>
